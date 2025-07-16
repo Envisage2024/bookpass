@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check In - BookPass</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="icon" type="text/css" href="images/book.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Firebase JS SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="app-body">
+    <nav class="top-navbar">
+        <div class="navbar-container">
+            <a href="dashboard.html" class="navbar-brand">
+                <i class="fas fa-book-open"></i>
+                <h1>BookPass</h1>
+            </a>
+            
+            <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <ul class="navbar-menu" id="navbarMenu">
+                <li>
+                    <a href="dashboard.html">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="inventory.html">
+                        <i class="fas fa-book"></i>
+                        Inventory
+                    </a>
+                </li>
+                <li>
+                    <a href="checkout.html">
+                        <i class="fas fa-hand-holding"></i>
+                        Check Out
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="checkin.html">
+                        <i class="fas fa-undo"></i>
+                        Check In
+                    </a>
+                </li>
+                <li>
+                    <a href="analytics.html">
+                        <i class="fas fa-chart-line"></i>
+                        Analytics
+                    </a>
+                </li>
+                <li>
+                    <a href="admin.html">
+                        <i class="fas fa-cog"></i>
+                        Admin
+                    </a>
+                </li>
+                <li>
+                    <a href="about.html">
+                        <i class="fas fa-info-circle"></i>
+                        About
+                    </a>
+                </li>
+                <li>
+                    <a href="contact.html">
+                        <i class="fas fa-headset"></i>
+                        Support
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="navbar-user">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="currentUser">Librarian</span>
+                </div>
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="content-header">
+            <h1>Check In Books</h1>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+          logoutBtn.addEventListener('click', function() {
+            if (window.firebaseAuth) {
+              window.firebaseAuth.signOut().then(function() {
+                window.location.href = 'login.html';
+              });
+            } else {
+              window.location.href = 'login.html';
+            }
+          });
+        }
+      });
+    </script>
+        </header>
+
+        <div class="checkin-container">
+            <div class="search-section">
+                <div class="form-card">
+                    <h2>Find Checked Out Books</h2>
+                    <div class="search-options">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="checkinSearch" placeholder="Search by borrower name, ID, or book title...">
+                        </div>
+                        <div class="filter-controls">
+                            <select id="statusFilter">
+                                <option value="">All Checkouts</option>
+                                <option value="active">Active</option>
+                                <option value="overdue">Overdue</option>
+                            </select>
+                            <select id="typeFilter">
+                                <option value="">All Types</option>
+                                <option value="student">Student</option>
+                                <option value="class-captain">Class Captain</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="checkouts-section">
+                <div id="checkoutsList" class="checkouts-list">
+                    <!-- Checked out books will be populated here -->
+                </div>
+
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <i class="fas fa-clipboard-check"></i>
+                    <h3>No Checkouts Found</h3>
+                    <p>There are no books currently checked out that match your search.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Check-in Confirmation Modal -->
+        <div id="checkinModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Confirm Check-in</h2>
+                    <button class="close-btn" onclick="closeCheckinModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="checkinDetails" class="checkin-details">
+                        <!-- Check-in details will be populated here -->
+                    </div>
+                    <div class="form-group">
+                        <label for="checkinNotes">Return Notes</label>
+                        <textarea id="checkinNotes" rows="3" placeholder="Any notes about the book's condition or return..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="lateFee">
+                            <span class="checkmark"></span>
+                            Apply late fee (if overdue)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="secondary-btn" onclick="closeCheckinModal()">Cancel</button>
+                    <button type="button" id="confirmCheckinBtn" class="primary-btn">
+                        <i class="fas fa-check"></i>
+                        Confirm Check-in
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Check-in Modal -->
+        <div id="bulkCheckinModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Bulk Check-in</h2>
+                    <button class="close-btn" onclick="closeBulkCheckinModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>You are about to check in <strong id="bulkCount">0</strong> books. This action cannot be undone.</p>
+                    <div id="bulkBooksList" class="bulk-books-list">
+                        <!-- Bulk books will be listed here -->
+                    </div>
+                    <div class="form-group">
+                        <label for="bulkNotes">Bulk Return Notes</label>
+                        <textarea id="bulkNotes" rows="3" placeholder="Notes for all returns..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="secondary-btn" onclick="closeBulkCheckinModal()">Cancel</button>
+                    <button type="button" id="confirmBulkCheckinBtn" class="primary-btn">
+                        <i class="fas fa-check"></i>
+                        Check In All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="scripts/storage.js"></script>
+    <script src="scripts/navigation.js"></script>
+    <script src="scripts/checkin.js"></script>
+</body>
+</html>

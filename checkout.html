@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Out - BookPass</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="icon" type="text/css" href="images/book.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Firebase JS SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body class="app-body">
+    <nav class="top-navbar">
+        <div class="navbar-container">
+            <a href="dashboard.html" class="navbar-brand">
+                <i class="fas fa-book-open"></i>
+                <h1>BookPass</h1>
+            </a>
+            
+            <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <ul class="navbar-menu" id="navbarMenu">
+                <li>
+                    <a href="dashboard.html">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="inventory.html">
+                        <i class="fas fa-book"></i>
+                        Inventory
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="checkout.html">
+                        <i class="fas fa-hand-holding"></i>
+                        Check Out
+                    </a>
+                </li>
+                <li>
+                    <a href="checkin.html">
+                        <i class="fas fa-undo"></i>
+                        Check In
+                    </a>
+                </li>
+                <li>
+                    <a href="analytics.html">
+                        <i class="fas fa-chart-line"></i>
+                        Analytics
+                    </a>
+                </li>
+                <li>
+                    <a href="admin.html">
+                        <i class="fas fa-cog"></i>
+                        Admin
+                    </a>
+                </li>
+                <li>
+                    <a href="about.html">
+                        <i class="fas fa-info-circle"></i>
+                        About
+                    </a>
+                </li>
+                <li>
+                    <a href="contact.html">
+                        <i class="fas fa-headset"></i>
+                        Support
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="navbar-user">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="currentUser">Librarian</span>
+                </div>
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+          logoutBtn.addEventListener('click', function() {
+            if (window.firebaseAuth) {
+              window.firebaseAuth.signOut().then(function() {
+                window.location.href = 'login.html';
+              });
+            } else {
+              window.location.href = 'login.html';
+            }
+          });
+        }
+      });
+    </script>
+
+    <main class="main-content">
+        <header class="content-header">
+            <h1>Check Out Books</h1>
+        </header>
+
+        <div class="checkout-container">
+            <div class="checkout-form-section">
+                <div class="form-card">
+                    <h2>Checkout Information</h2>
+                    <form id="checkoutForm">
+                        <div class="form-group">
+                            <label for="borrowerType">Borrower Type *</label>
+                            <select id="borrowerType" name="borrowerType" required>
+                                <option value="">Select Type</option>
+                                <option value="student">Student (Personal Use)</option>
+                                <option value="class-captain">Class Captain (Classroom Use)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="studentGroup" style="display: none;">
+                            <label for="studentOption">Student Options *</label>
+                            <select id="studentOption" name="studentOption" required>
+                                <option value="">Select Option</option>
+                                <option value="manual">Manual Entry</option>
+                                <option value="rfid">Use RFID Card</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="borrowerNameGroup" style="display: none;">
+                            <label for="borrowerName">Name *</label>
+                            <input type="text" id="borrowerName" name="borrowerName" required>
+                        </div>
+
+                        <div class="form-group" id="studentIdGroup" style="display: none;">
+                            <label for="borrowerID">Student ID *</label>
+                            <input type="text" id="borrowerID" name="borrowerID" required>
+                        </div>
+
+                        <div class="form-group" id="bookUniqueIdGroup" style="display: none;">
+                            <label for="bookUniqueId">Book Unique ID *</label>
+                            <input type="text" id="bookUniqueId" name="bookUniqueId" placeholder="Enter unique book code" required>
+                        </div>
+
+                        <div class="form-group" id="captainGroup" style="display: none;">
+                            <label for="classCaptain">Select Class Captain *</label>
+                            <select id="classCaptain" name="classCaptain">
+                                <option value="">Select a class captain...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="classGroup" style="display: none;">
+                            <label for="className">Class Name</label>
+                            <input type="text" id="className" name="className" placeholder="e.g., Grade 10A" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="dueDate">Due Date *</label>
+                            <input type="date" id="dueDate" name="dueDate" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notes">Notes</label>
+                            <textarea id="notes" name="notes" rows="3" placeholder="Additional notes or special instructions..."></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="book-selection-section">
+                <div class="form-card">
+                    <h2>Select Books</h2>
+                    <div class="book-search">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="bookSearch" placeholder="Search books by title, author, or ISBN...">
+                        </div>
+                    </div>
+
+                    <div id="availableBooks" class="book-list">
+                        <!-- Available books will be populated here -->
+                    </div>
+
+                    <div id="selectedBooks" class="selected-books">
+                        <h3>Selected Books (<span id="selectedCount">0</span>)</h3>
+                        <div id="selectedBooksList" class="selected-books-list">
+                            <!-- Selected books will appear here -->
+                        </div>
+                    </div>
+
+                    <div class="checkout-actions">
+                        <button type="button" class="secondary-btn" onclick="clearSelection()">
+                            <i class="fas fa-times"></i>
+                            Clear Selection
+                        </button>
+                        <button type="button" id="processCheckoutBtn" class="primary-btn" disabled>
+                            <i class="fas fa-check"></i>
+                            Process Checkout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="rfidSection" style="display: none;">
+            <div class="form-card">
+                <h2>RFID Checkout</h2>
+                <p>Scan your RFID card to borrow a book.</p>
+                <p id="rfidStatus">Waiting for RFID scan...</p>
+            </div>
+        </div>
+
+        <div id="checkoutSuccess" class="success-message" style="display: none;">
+            <div class="success-content">
+                <i class="fas fa-check-circle"></i>
+                <h3>Checkout Successful!</h3>
+                <p id="successMessage"></p>
+                <button onclick="location.reload()" class="primary-btn">
+                    New Checkout
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="scripts/storage.js"></script>
+    <script src="scripts/navigation.js"></script>
+    <script src="scripts/checkout.js"></script>
+    <script>
+        // Show/hide student options and RFID section based on borrower type and student option
+        document.addEventListener('DOMContentLoaded', function() {
+            const borrowerType = document.getElementById('borrowerType');
+            const studentGroup = document.getElementById('studentGroup');
+            const studentOption = document.getElementById('studentOption');
+            const rfidSection = document.getElementById('rfidSection');
+            const rfidStatus = document.getElementById('rfidStatus');
+            const borrowerNameGroup = document.getElementById('borrowerNameGroup');
+            const studentIdGroup = document.getElementById('studentIdGroup');
+            const bookUniqueIdGroup = document.getElementById('bookUniqueIdGroup');
+
+            borrowerType.addEventListener('change', function() {
+                if (borrowerType.value === 'student') {
+                    studentGroup.style.display = 'block';
+                } else {
+                    studentGroup.style.display = 'none';
+                    rfidSection.style.display = 'none';
+                    borrowerNameGroup.style.display = 'none';
+                    studentIdGroup.style.display = 'none';
+                    bookUniqueIdGroup.style.display = 'none';
+                }
+            });
+
+            studentOption.addEventListener('change', function() {
+                if (studentOption.value === 'rfid') {
+                    rfidSection.style.display = 'block';
+                    borrowerNameGroup.style.display = 'none';
+                    studentIdGroup.style.display = 'none';
+                    bookUniqueIdGroup.style.display = 'none';
+                } else if (studentOption.value === 'manual') {
+                    rfidSection.style.display = 'none';
+                    borrowerNameGroup.style.display = 'block';
+                    studentIdGroup.style.display = 'block';
+                    bookUniqueIdGroup.style.display = 'block';
+                } else {
+                    rfidSection.style.display = 'none';
+                    borrowerNameGroup.style.display = 'none';
+                    studentIdGroup.style.display = 'none';
+                    bookUniqueIdGroup.style.display = 'none';
+                }
+            });
+        });
+
+        // Autofill due date based on default loan period setting
+        document.addEventListener('DOMContentLoaded', function() {
+          const dueDateInput = document.getElementById('dueDate');
+
+          // Clear the due date field initially
+          dueDateInput.value = '';
+          dueDateInput.placeholder = 'Loading...';
+
+          // Fetch default loan period from Firestore settings
+          const settingsRef = firebase.firestore().collection('settings').doc('system');
+          settingsRef.get().then(doc => {
+            if (doc.exists) {
+              console.log('Settings document found:', doc.data()); // Log the document data
+              const defaultLoanPeriodDays = doc.data().defaultLoanDays;
+
+              if (defaultLoanPeriodDays) {
+                console.log('Default loan period days:', defaultLoanPeriodDays); // Log the loan period
+                // Autofill due date
+                const today = new Date();
+                const dueDate = new Date(today.getTime() + defaultLoanPeriodDays * 24 * 60 * 60 * 1000);
+                dueDateInput.value = dueDate.toISOString().split('T')[0];
+                console.log('Due date set to:', dueDateInput.value); // Log the due date
+              } else {
+                console.error('Default loan period not found in settings');
+              }
+            } else {
+              console.error('Settings document does not exist');
+            }
+          }).catch(error => {
+            console.error('Error fetching default loan period:', error);
+          });
+        });
+
+        // Arduino communication setup
+        const socket = io('http://localhost:3000'); // Replace with your Arduino server's address
+
+        socket.on('connect', () => {
+            console.log('Connected to Arduino server');
+        });
+
+        socket.on('rfid-data', (data) => {
+            console.log('RFID data received:', data);
+            document.getElementById('rfidStatus').textContent = `RFID scanned: ${data}`;
+            // Check RFID against Firebase database
+            firebase.database().ref('rfid/' + data).once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    const userData = snapshot.val();
+                    console.log('RFID matched:', userData);
+                    alert(`Book borrowed successfully by ${userData.name}`);
+                } else {
+                    console.log('RFID not found in database');
+                    alert('RFID not recognized. Please try again.');
+                }
+            });
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from Arduino server');
+        });
+
+        // Global functions for HTML onclick handlers
+        function clearSelection() {
+            if (window.checkoutManager) {
+                window.checkoutManager.clearSelection();
+            }
+        }
+
+        function resetCheckoutForm() {
+            if (window.checkoutManager) {
+                window.checkoutManager.resetCheckoutForm();
+            }
+        }
+    </script>
+</body>
+</html>

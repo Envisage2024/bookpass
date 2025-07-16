@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory - BookPass</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="icon" type="text/css" href="images/book.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Firebase JS SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyAwt_EgdIgG2hMDAhleQgBgu5DjeXImWtQ",
+        authDomain: "bookpass-4aff4.firebaseapp.com",
+        projectId: "bookpass-4aff4",
+        storageBucket: "bookpass-4aff4.firebasestorage.app",
+        messagingSenderId: "833394499791",
+        appId: "1:833394499791:web:6666de0f66162f85a017ba",
+        measurementId: "G-YVCKSHFTY3"
+      };
+      firebase.initializeApp(firebaseConfig);
+      window.firebaseAuth = firebase.auth();
+      window.firebaseAuth.onAuthStateChanged(function(user) {
+        if (!user) {
+          window.location.href = "login.html";
+        }
+      });
+    </script>
+</head>
+<body class="app-body">
+    <nav class="top-navbar">
+        <div class="navbar-container">
+            <a href="dashboard.html" class="navbar-brand">
+                <i class="fas fa-book-open"></i>
+                <h1>BookPass</h1>
+            </a>
+            
+            <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <ul class="navbar-menu" id="navbarMenu">
+                <li>
+                    <a href="dashboard.html">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="inventory.html">
+                        <i class="fas fa-book"></i>
+                        Inventory
+                    </a>
+                </li>
+                <li>
+                    <a href="checkout.html">
+                        <i class="fas fa-hand-holding"></i>
+                        Check Out
+                    </a>
+                </li>
+                <li>
+                    <a href="checkin.html">
+                        <i class="fas fa-undo"></i>
+                        Check In
+                    </a>
+                </li>
+                <li>
+                    <a href="analytics.html">
+                        <i class="fas fa-chart-line"></i>
+                        Analytics
+                    </a>
+                </li>
+                <li>
+                    <a href="admin.html">
+                        <i class="fas fa-cog"></i>
+                        Admin
+                    </a>
+                </li>
+                <li>
+                    <a href="about.html">
+                        <i class="fas fa-info-circle"></i>
+                        About
+                    </a>
+                </li>
+                <li>
+                    <a href="contact.html">
+                        <i class="fas fa-headset"></i>
+                        Support
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="navbar-user">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="currentUser">Librarian</span>
+                </div>
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+          logoutBtn.addEventListener('click', function() {
+            if (window.firebaseAuth) {
+              window.firebaseAuth.signOut().then(function() {
+                window.location.href = 'login.html';
+              });
+            } else {
+              window.location.href = 'login.html';
+            }
+          });
+        }
+      });
+    </script>
+
+    <main class="main-content">
+        <header class="content-header">
+            <h1>Book Inventory</h1>
+            <button id="addBookBtn" class="primary-btn">
+                <i class="fas fa-plus"></i>
+                Add New Book
+            </button>
+        </header>
+
+        <div class="inventory-controls">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search books by title, author, or ISBN...">
+            </div>
+            <div class="filter-controls">
+                <select id="categoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="Fiction">Fiction</option>
+                    <option value="Non-Fiction">Non-Fiction</option>
+                    <option value="Science">Science</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="History">History</option>
+                    <option value="Literature">Literature</option>
+                    <option value="Reference">Reference</option>
+                </select>
+                <select id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="available">Available</option>
+                    <option value="checked-out">Checked Out</option>
+                    <option value="overdue">Overdue</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="booksContainer" class="books-grid">
+            <!-- Books will be populated by JavaScript -->
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-book"></i>
+            <h3>No Books Found</h3>
+            <p>Start building your library by adding your first book.</p>
+            <button class="primary-btn" onclick="openAddBookModal()">
+                <i class="fas fa-plus"></i>
+                Add First Book
+            </button>
+        </div>
+    </main>
+
+    <!-- Add/Edit Book Modal -->
+    <div id="bookModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Book</h2>
+                <button class="close-btn" onclick="closeBookModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="bookForm" class="modal-form">
+                <input type="hidden" id="bookId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bookTitle">Title *</label>
+                        <input type="text" id="bookTitle" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookAuthor">Author *</label>
+                        <input type="text" id="bookAuthor" name="author" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bookISBN">ISBN</label>
+                        <input type="text" id="bookISBN" name="isbn">
+                    </div>
+                    <div class="form-group">
+                        <label for="bookCategory">Category *</label>
+                        <select id="bookCategory" name="category" required>
+                            <option value="">Select Category</option>
+                            <option value="Fiction">Fiction</option>
+                            <option value="Non-Fiction">Non-Fiction</option>
+                            <option value="Science">Science</option>
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="History">History</option>
+                            <option value="Literature">Literature</option>
+                            <option value="Reference">Reference</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bookPublisher">Publisher</label>
+                        <input type="text" id="bookPublisher" name="publisher">
+                    </div>
+                    <div class="form-group">
+                        <label for="bookYear">Publication Year</label>
+                        <input type="number" id="bookYear" name="year" min="1800" max="2025">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bookCopies">Number of Copies *</label>
+                        <input type="number" id="bookCopies" name="copies" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookLocation">Shelf Location</label>
+                        <input type="text" id="bookLocation" name="location" placeholder="e.g., A-101">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="bookDescription">Description</label>
+                    <textarea id="bookDescription" name="description" rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="secondary-btn" onclick="closeBookModal()">Cancel</button>
+                    <button type="submit" class="primary-btn">Save Book</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="scripts/storage.js"></script>
+    <script src="scripts/navigation.js"></script>
+    <script src="scripts/inventory.js"></script>
+</body>
+</html>

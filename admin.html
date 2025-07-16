@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - BookPass</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Firebase JS SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyAwt_EgdIgG2hMDAhleQgBgu5DjeXImWtQ",
+        authDomain: "bookpass-4aff4.firebaseapp.com",
+        projectId: "bookpass-4aff4",
+        storageBucket: "bookpass-4aff4.firebasestorage.app",
+        messagingSenderId: "833394499791",
+        appId: "1:833394499791:web:6666de0f66162f85a017ba",
+        measurementId: "G-YVCKSHFTY3"
+      };
+      firebase.initializeApp(firebaseConfig);
+      window.firebaseAuth = firebase.auth();
+      window.firebaseAuth.onAuthStateChanged(function(user) {
+        if (!user) {
+          window.location.href = "login.html";
+        }
+      });
+    </script>
+</head>
+<body class="app-body">
+    <nav class="top-navbar">
+        <div class="navbar-container">
+            <a href="dashboard.html" class="navbar-brand">
+                <i class="fas fa-book-open"></i>
+                <h1>BookPass</h1>
+            </a>
+            
+            <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <ul class="navbar-menu" id="navbarMenu">
+                <li>
+                    <a href="dashboard.html">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="inventory.html">
+                        <i class="fas fa-book"></i>
+                        Inventory
+                    </a>
+                </li>
+                <li>
+                    <a href="checkout.html">
+                        <i class="fas fa-hand-holding"></i>
+                        Check Out
+                    </a>
+                </li>
+                <li>
+                    <a href="checkin.html">
+                        <i class="fas fa-undo"></i>
+                        Check In
+                    </a>
+                </li>
+                <li>
+                    <a href="analytics.html">
+                        <i class="fas fa-chart-line"></i>
+                        Analytics
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="admin.html">
+                        <i class="fas fa-cog"></i>
+                        Admin
+                    </a>
+                </li>
+                <li>
+                    <a href="about.html">
+                        <i class="fas fa-info-circle"></i>
+                        About
+                    </a>
+                </li>
+                <li>
+                    <a href="contact.html">
+                        <i class="fas fa-headset"></i>
+                        Support
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="navbar-user">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="currentUser">Librarian</span>
+                </div>
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="content-header">
+            <h1>Admin Panel</h1>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+          logoutBtn.addEventListener('click', function() {
+            if (window.firebaseAuth) {
+              window.firebaseAuth.signOut().then(function() {
+                window.location.href = 'login.html';
+              });
+            } else {
+              window.location.href = 'login.html';
+            }
+          });
+        }
+      });
+    </script>
+            <p>Manage system settings and class captains</p>
+        </header>
+
+        <div class="content-body">
+            <div class="admin-container">
+            <!-- Class Captains Management Section -->
+            <div class="admin-section">
+                <div class="form-card">
+                    <div class="section-header">
+                        <h2><i class="fas fa-users"></i> Class Captains Management</h2>
+                        <button class="primary-btn" onclick="openAddCaptainModal()">
+                            <i class="fas fa-plus"></i>
+                            Add Captain
+                        </button>
+                    </div>
+
+                    <div class="search-filters">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="captainSearch" placeholder="Search captains by name, ID, or class...">
+                        </div>
+                    </div>
+
+                    <div id="captainsList" class="captains-list">
+                        <!-- Captains will be populated here -->
+                        <!-- Book count will be injected by admin.js for each captain -->
+                    </div>
+
+                    <div id="emptyCaptains" class="empty-state" style="display: none;">
+                        <i class="fas fa-users"></i>
+                        <h3>No Class Captains</h3>
+                        <p>Add class captains to enable classroom book checkouts</p>
+                        <button class="primary-btn" onclick="openAddCaptainModal()">
+                            <i class="fas fa-plus"></i>
+                            Add First Captain
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Settings Section -->
+            <div class="admin-section">
+                <div class="form-card">
+                    <h2><i class="fas fa-cog"></i> System Settings</h2>
+                    
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label for="defaultLoanDays">Default Loan Period (days)</label>
+                            <input type="number" id="defaultLoanDays" min="1" max="365" value="" disabled>
+                        </div>
+                        <div class="setting-item">
+                            <label for="maxStudentBooks">Max Books per Student</label>
+                            <input type="number" id="maxStudentBooks" min="1" max="10" value="" disabled>
+                        </div>
+                        <div class="setting-item">
+                            <label for="maxCaptainBooks">Max Books per Class Captain</label>
+                            <input type="number" id="maxCaptainBooks" min="1" max="100" value="" disabled>
+                        </div>
+                        <div class="setting-item">
+                            <label for="overdueWarningDays">Overdue Warning (days)</label>
+                            <input type="number" id="overdueWarningDays" min="0" max="30" value="" disabled>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="primary-btn" onclick="saveSettings()">
+                            <i class="fas fa-save"></i>
+                            Save Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Captain Modal -->
+    <div id="captainModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="captainModalTitle">Add Class Captain</h2>
+                <button class="close-btn" onclick="closeCaptainModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="captainForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="captainName">Captain Name *</label>
+                            <input type="text" id="captainName" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="captainID">Student ID *</label>
+                            <input type="text" id="captainID" name="studentId" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="captainClass">Class Name *</label>
+                            <select id="captainClass" name="className" required>
+                                <option value="">Select Class</option>
+                                <option value="F.1 A">F.1 A</option>
+                                <option value="F.1 B">F.1 B</option>
+                                <option value="F.1 C">F.1 C</option>
+                                <option value="F.1 D">F.1 D</option>
+                                <option value="F.1 E">F.1 E</option>
+                                <option value="F.1 G">F.1 G</option>
+                                <option value="F.2 A">F.2 A</option>
+                                <option value="F.2 B">F.2 B</option>
+                                <option value="F.2 C">F.2 C</option>
+                                <option value="F.2 D">F.2 D</option>
+                                <option value="F.2 E">F.2 E</option>
+                                <option value="F.2 F">F.2 F</option>
+                                <option value="F.2 G">F.2 G</option>
+                                <option value="F.3 A">F.3 A</option>
+                                <option value="F.3 B">F.3 B</option>
+                                <option value="F.3 C">F.3 C</option>
+                                <option value="F.3 D">F.3 D</option>
+                                <option value="F.3 E">F.3 E</option>
+                                <option value="F.3 F">F.3 F</option>
+                                <option value="F.3 G">F.3 G</option>
+                                <option value="F.4 A">F.4 A</option>
+                                <option value="F.4 B">F.4 B</option>
+                                <option value="F.4 C">F.4 C</option>
+                                <option value="F.4 D">F.4 D</option>
+                                <option value="F.4 E">F.4 E</option>
+                                <option value="F.4 F">F.4 F</option>
+                                <option value="F.4 G">F.4 G</option>
+                                <option value="F.5 A">F.5 A</option>
+                                <option value="F.5 B">F.5 B</option>
+                                <option value="F.5 C">F.5 C</option>
+                                <option value="F.6 A">F.6 A</option>
+                                <option value="F.6 B">F.6 B</option>
+                                <option value="F.6 C">F.6 C</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="captainEmail">Email (Optional)</label>
+                        <input type="email" id="captainEmail" name="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="captainPhone">Phone (Optional)</label>
+                        <input type="tel" id="captainPhone" name="phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="captainNotes">Notes</label>
+                        <textarea id="captainNotes" name="notes" rows="3" placeholder="Additional notes about this captain..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" onclick="closeCaptainModal()">Cancel</button>
+                <button type="button" class="primary-btn" onclick="saveCaptain()">
+                    <i class="fas fa-save"></i>
+                    <span id="saveButtonText">Save Captain</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Captain Details Modal -->
+    <div id="captainDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Captain Details</h2>
+                <button class="close-btn" onclick="closeCaptainDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="captainDetailsContent">
+                    <!-- Captain details will be populated here -->
+                    <!-- Book count for captain will be shown in details modal if needed -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="secondary-btn" onclick="closeCaptainDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/storage.js"></script>
+    <script src="scripts/navigation.js"></script>
+    <script src="scripts/admin.js"></script>
+<!-- Spinner removed as requested -->
+<script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const body = document.querySelector('body');
+        body.style.transition = 'none';
+        body.style.opacity = 1;
+      });
+    </script>
+</body>
+</html>
