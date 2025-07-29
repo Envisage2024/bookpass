@@ -213,31 +213,66 @@ class StorageManager {
     checkinBook(checkoutId, notes = '') {
         const checkouts = this.getAllCheckouts();
         const checkout = checkouts.find(c => c.id === checkoutId);
-        
-        if (checkout && checkout.status === 'active') {
+        if (!checkout || checkout.status !== 'active') return null;
+
+        // For class-captain, support partial returns
+        if (checkout.borrowerType === 'class-captain') {
+            const totalQty = checkout.quantity || 1;
+            let prevReturnQty = checkout.returnQuantity || 0;
+            // Prompt for number to return (default 1)
+            let toReturn = 1;
+            // Try to get from DOM if available (for UI integration)
+            const input = document.getElementById('returnQuantity');
+            if (input) {
+                toReturn = parseInt(input.value) || 1;
+            }
+            let newReturnQty = prevReturnQty + toReturn;
+            if (newReturnQty > totalQty) newReturnQty = totalQty;
+            checkout.returnQuantity = newReturnQty;
+            // Only set status to returned if all books are back
+            if (newReturnQty >= totalQty) {
+                checkout.status = 'returned';
+                checkout.returnDate = new Date().toISOString();
+            }
+            checkout.returnNotes = notes;
+            // Update book availability
+            const book = this.getBookById(checkout.bookId);
+            if (book) {
+                book.availableCopies += toReturn;
+                this.updateBook(book.id, { availableCopies: book.availableCopies });
+            }
+            localStorage.setItem('bookpass_checkouts', JSON.stringify(checkouts));
+            this.logActivity('book_checkin', `${checkout.borrowerName} returned ${toReturn} of ${book ? book.title : 'book'}`);
+            if (window.logActivity) {
+                window.logActivity({
+                    action: 'book_checkin',
+                    description: `${checkout.borrowerName} returned ${toReturn} of ${book ? book.title : 'book'}`,
+                    user: checkout.borrowerName || 'System'
+                });
+            }
+            return checkout;
+        } else {
+            // Normal (student) check-in
             checkout.status = 'returned';
             checkout.returnDate = new Date().toISOString();
             checkout.returnNotes = notes;
-
             // Update book availability
             const book = this.getBookById(checkout.bookId);
             if (book) {
                 book.availableCopies++;
                 this.updateBook(book.id, { availableCopies: book.availableCopies });
             }
-
             localStorage.setItem('bookpass_checkouts', JSON.stringify(checkouts));
-            this.logActivity('book_checkin', `${checkout.borrowerName} returned ${book.title}`);
-        if (window.logActivity) {
-            window.logActivity({
-                action: 'book_checkin',
-                description: `${checkout.borrowerName} returned ${book.title}`,
-                user: checkout.borrowerName || 'System'
-            });
-        }
+            this.logActivity('book_checkin', `${checkout.borrowerName} returned ${book ? book.title : 'book'}`);
+            if (window.logActivity) {
+                window.logActivity({
+                    action: 'book_checkin',
+                    description: `${checkout.borrowerName} returned ${book ? book.title : 'book'}`,
+                    user: checkout.borrowerName || 'System'
+                });
+            }
             return checkout;
         }
-        return null;
     }
 
     isOverdue(checkout) {

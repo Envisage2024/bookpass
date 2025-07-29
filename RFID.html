@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YVCKSHFTY3"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-YVCKSHFTY3');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFID Integration</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAwt_EgdIgG2hMDAhleQgBgu5DjeXImWtQ",
+            authDomain: "bookpass-4aff4.firebaseapp.com",
+            databaseURL: "https://bookpass-4aff4-default-rtdb.firebaseio.com",
+            projectId: "bookpass-4aff4",
+            storageBucket: "bookpass-4aff4.firebasestorage.app",
+            messagingSenderId: "833394499791",
+            appId: "1:833394499791:web:6666de0f66162f85a017ba",
+            measurementId: "G-YVCKSHFTY3"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Authentication check
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log("User is signed in:", user.email);
+                // Load user-specific data or navigate to other pages
+            } else {
+                console.log("No user is signed in.");
+                // Redirect to login page
+                window.location.href = "login.html";
+            }
+        });
+
+        // Navigation functionality
+        function navigateTo(page) {
+            window.location.href = page;
+        }
+
+        // Example usage
+        document.getElementById('navigateButton').addEventListener('click', () => {
+            navigateTo('dashboard.html');
+        });
+
+        // Arduino communication setup
+        const socket = io('http://localhost:3000'); // Replace with your Arduino server's address
+
+        socket.on('connect', () => {
+            console.log('Connected to Arduino server');
+        });
+
+        socket.on('rfid-data', (data) => {
+            console.log('RFID data received:', data);
+            // Process RFID data, e.g., check against Firebase database
+            database.ref('rfid/' + data).once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    console.log('RFID matched:', snapshot.val());
+                    // Perform actions based on RFID match
+                } else {
+                    console.log('RFID not found in database');
+                }
+            });
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from Arduino server');
+        });
+    </script>
+</body>
+</html>

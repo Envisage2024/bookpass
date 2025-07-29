@@ -109,6 +109,7 @@ class InventoryManager {
                         <span><strong>Total Copies:</strong> ${book.copies}</span>
                         <span><strong>Available:</strong> ${book.availableCopies}</span>
                     </div>
+                    ${book.coverUrl ? `<div class='book-cover-thumb'><img src='${book.coverUrl}' alt='Cover' style='max-width:80px;max-height:100px;border-radius:4px;margin-bottom:6px;'></div>` : ''}
                     ${book.publisher ? `<p><strong>Publisher:</strong> ${this.escapeHtml(book.publisher)}</p>` : ''}
                     ${book.year ? `<p><strong>Year:</strong> ${book.year}</p>` : ''}
                     ${book.location ? `<p><strong>Location:</strong> ${this.escapeHtml(book.location)}</p>` : ''}
@@ -195,16 +196,25 @@ class InventoryManager {
         document.getElementById('bookCopies').value = book.copies;
         document.getElementById('bookLocation').value = book.location || '';
         document.getElementById('bookDescription').value = book.description || '';
+        // Cover preview and hidden field
+        document.getElementById('bookCoverUrl').value = book.coverUrl || '';
+        const coverPreview = document.getElementById('coverPreview');
+        if (book.coverUrl && coverPreview) {
+            coverPreview.innerHTML = `<img src='${book.coverUrl}' alt='Cover Preview'>`;
+        } else if (coverPreview) {
+            coverPreview.innerHTML = 'Drag & drop or click to select an image';
+        }
     }
 
     resetBookForm() {
         document.getElementById('bookForm').reset();
         document.getElementById('bookId').value = '';
-        
+        document.getElementById('bookCoverUrl').value = '';
+        const coverPreview = document.getElementById('coverPreview');
+        if (coverPreview) coverPreview.innerHTML = 'Drag & drop or click to select an image';
         // Clear any field errors
         const errorElements = document.querySelectorAll('.field-error');
         errorElements.forEach(error => error.remove());
-        
         // Reset field styles
         const inputs = document.querySelectorAll('#bookForm input, #bookForm select, #bookForm textarea');
         inputs.forEach(input => {
@@ -228,7 +238,8 @@ class InventoryManager {
             year: formData.get('year') ? parseInt(formData.get('year')) : null,
             copies: enteredCopies,
             location: formData.get('location')?.trim() || '',
-            description: formData.get('description')?.trim() || ''
+            description: formData.get('description')?.trim() || '',
+            coverUrl: formData.get('coverUrl') || ''
         };
         try {
             if (this.currentEditingBook) {
@@ -320,6 +331,7 @@ class InventoryManager {
             <div class="book-details-modal">
                 <div class="book-overview">
                     <h3>${this.escapeHtml(book.title)}</h3>
+                    ${book.coverUrl ? `<div class='book-cover-detail'><img src='${book.coverUrl}' alt='Cover' style='max-width:160px;max-height:200px;border-radius:6px;margin-bottom:10px;'></div>` : ''}
                     <p><strong>Author:</strong> ${this.escapeHtml(book.author)}</p>
                     <p><strong>Category:</strong> ${this.escapeHtml(book.category)}</p>
                     <p><strong>Status:</strong> <span class="status-badge ${status}">${status.replace('-', ' ')}</span></p>

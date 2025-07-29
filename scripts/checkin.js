@@ -164,6 +164,13 @@ class CheckinManager {
 
         const detailsContainer = document.getElementById('checkinDetails');
         if (detailsContainer) {
+            let maxReturn = 1;
+            if (checkout.borrowerType === 'class-captain') {
+                const totalQty = checkout.quantity || 1;
+                const returnedQty = checkout.returnQuantity || 0;
+                maxReturn = totalQty - returnedQty;
+                if (maxReturn < 1) maxReturn = 1;
+            }
             detailsContainer.innerHTML = `
                 <div class="checkin-book-info">
                     <h4>${book ? this.escapeHtml(book.title) : 'Unknown Book'}</h4>
@@ -174,15 +181,26 @@ class CheckinManager {
                     ${checkout.className ? `<p><strong>Class:</strong> ${this.escapeHtml(checkout.className)}</p>` : ''}
                     <p><strong>Checked out:</strong> ${this.formatDate(checkout.checkoutDate)}</p>
                     <p><strong>Due date:</strong> ${this.formatDate(checkout.dueDate)}</p>
-                    ${isOverdue ? `<p class="overdue-warning"><strong>Status:</strong> Overdue by ${daysOverdue} days</p>` : ''}
+                    ${isOverdue ? `<p class=\"overdue-warning\"><strong>Status:</strong> Overdue by ${daysOverdue} days</p>` : ''}
                 </div>
                 ${checkout.borrowerType === 'class-captain' ? `
                 <div class="form-group">
                     <label for="returnQuantity">Number of books being returned</label>
-                    <input type="number" id="returnQuantity" min="1" max="${checkout.quantity || 1}" value="${checkout.quantity || 1}" required>
+                    <input type="number" id="returnQuantity" min="1" max="${maxReturn}" value="${maxReturn}" required>
                 </div>
                 ` : ''}
             `;
+            // Enforce max in UI
+            if (checkout.borrowerType === 'class-captain') {
+                const input = document.getElementById('returnQuantity');
+                if (input) {
+                    input.addEventListener('input', function() {
+                        let val = parseInt(this.value) || 1;
+                        if (val > maxReturn) this.value = maxReturn;
+                        if (val < 1) this.value = 1;
+                    });
+                }
+            }
         }
 
         // Set late fee checkbox based on overdue status
@@ -412,13 +430,25 @@ class CheckinManager {
             returnQuantity = parseInt(document.getElementById('returnQuantity')?.value) || 1;
         }
         try {
+            // Fetch the latest checkout record
+            const checkoutRef = this.db.collection('checkouts').doc(this.currentCheckin.id);
+            const checkoutDoc = await checkoutRef.get();
+            let prevReturnQty = 0;
+            let totalQty = this.currentCheckin.quantity || 1;
+            if (checkoutDoc.exists) {
+                const data = checkoutDoc.data();
+                prevReturnQty = data.returnQuantity || 0;
+                totalQty = data.quantity || 1;
+            }
+            let newReturnQty = prevReturnQty + returnQuantity;
+            let isFullyReturned = newReturnQty >= totalQty;
             // Update checkout record in Firestore
-            await this.db.collection('checkouts').doc(this.currentCheckin.id).update({
-                returned: true,
-                returnDate: firebase.firestore.FieldValue.serverTimestamp(),
+            await checkoutRef.update({
+                returned: isFullyReturned,
+                returnDate: isFullyReturned ? firebase.firestore.FieldValue.serverTimestamp() : null,
                 returnNotes: notes,
                 lateFeeApplied: applyLateFee,
-                returnQuantity: returnQuantity
+                returnQuantity: newReturnQty
             });
             // Increment availableCopies in books collection
             const bookId = this.currentCheckin.bookId;

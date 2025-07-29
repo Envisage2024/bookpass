@@ -94,12 +94,26 @@ class DashboardManager {
                 const now = new Date();
                 checkoutsSnap.forEach(doc => {
                     const data = doc.data();
-                    const quantity = data.quantity || 1;
-                    checkedOutBooks += quantity;
-                    if (data.dueDate) {
-                        const dueDate = new Date(data.dueDate);
-                        if (dueDate < now) {
-                            overdueBooks += quantity;
+                    let quantity = data.quantity || 1;
+                    let returnedQty = data.returnQuantity || 0;
+                    let outstanding = quantity - returnedQty;
+                    if (outstanding < 0) outstanding = 0;
+                    // For class-captain, count only outstanding books
+                    if (data.borrowerType === 'class-captain') {
+                        checkedOutBooks += outstanding;
+                        if (data.dueDate) {
+                            const dueDate = new Date(data.dueDate);
+                            if (dueDate < now) {
+                                overdueBooks += outstanding;
+                            }
+                        }
+                    } else {
+                        checkedOutBooks += quantity;
+                        if (data.dueDate) {
+                            const dueDate = new Date(data.dueDate);
+                            if (dueDate < now) {
+                                overdueBooks += quantity;
+                            }
                         }
                     }
                 });
@@ -353,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.storageManager && window.navigationManager
         ) {
             window.dashboardManager = new DashboardManager();
+            setupLogoutButton();
         } else {
             setTimeout(tryInitDashboard, 100);
         }

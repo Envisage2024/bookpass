@@ -30,7 +30,6 @@
   text-decoration: none;
   font-weight: 600;
   margin-left: 4px;
-  transition: color 0.2s;
 }
 .login-info-card .contact-info a:hover {
   color: #1e40af;
@@ -141,7 +140,6 @@
   border-radius: 8px;
   padding: 0 12px;
   border: 1.5px solid #e2e8f0;
-  transition: border-color 0.3s;
   position: relative;
 }
 .login-input-group:focus-within {
@@ -168,7 +166,6 @@
   cursor: pointer;
   margin-left: 10px;
   user-select: none;
-  transition: color 0.2s;
 }
 .show-password:hover {
   color: #1e40af;
@@ -184,7 +181,6 @@
   color: #2563eb;
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.2s;
 }
 .forgot-password:hover {
   color: #1e40af;
@@ -201,7 +197,6 @@
   padding: 13px 0;
   margin-bottom: 10px;
   box-shadow: 0 2px 8px 0 rgba(31, 38, 135, 0.08);
-  transition: background 0.2s, box-shadow 0.2s;
 }
 .login-button-modern:hover {
   background: #1e40af;
@@ -218,7 +213,6 @@
   text-decoration: none;
   font-weight: 600;
   margin-left: 4px;
-  transition: color 0.2s;
 }
 .login-footer-links a:hover {
   color: #1e40af;
@@ -270,7 +264,6 @@
   width: 100vw;
   height: 100vh;
   background: rgba(30, 41, 59, 0.45);
-  transition: opacity 0.3s;
   opacity: 0;
 }
 .support-modal.show {
@@ -282,6 +275,49 @@
 }
 @keyframes modalFadeIn {
   from { opacity: 0; transform: translateY(40px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.support-modal-content {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+  padding: 36px 32px 28px 32px;
+  max-width: 370px;
+  width: 90vw;
+  position: relative;
+  text-align: left;
+  animation: modalContentIn 0.4s cubic-bezier(.4,0,.2,1);
+}
+@keyframes modalContentIn {
+  from { opacity: 0; transform: translateY(40px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Info Modal Styles */
+.info-modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(30, 41, 59, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+}
+.info-modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.info-modal-content {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(30,41,59,0.18);
+  padding: 2.5rem 2rem 2rem 2rem;
+  min-width: 320px;
+  max-width: 90vw;
   animation: infoModalIn 0.35s cubic-bezier(.4,0,.2,1);
   position: relative;
 }
@@ -302,7 +338,6 @@
   font-size: 1.5rem;
   color: #64748b;
   cursor: pointer;
-  transition: color 0.2s;
 }
 .close-info-modal:hover {
   color: #1e293b;
@@ -325,7 +360,6 @@
   padding: 0.5rem 1.2rem;
   font-size: 1rem;
   cursor: pointer;
-  transition: background 0.2s;
   margin-top: 0.5rem;
 }
 .info-btn:hover {
@@ -338,7 +372,6 @@
   font-size: 1.5rem;
   color: #64748b;
   cursor: pointer;
-  transition: color 0.2s;
 }
 .close-modal:hover {
   color: #ef4444;
@@ -459,7 +492,6 @@
     border-radius: 8px;
     padding: 0 12px;
     border: 1.5px solid #e2e8f0;
-    transition: border-color 0.3s;
     position: relative;
 }
 .input-wrapper:focus-within {
@@ -486,7 +518,6 @@
     cursor: pointer;
     margin-left: 10px;
     user-select: none;
-    transition: color 0.2s;
 }
 .show-password:hover {
     color: #1e40af;
@@ -502,7 +533,6 @@
     color: #2563eb;
     text-decoration: none;
     font-weight: 500;
-    transition: color 0.2s;
 }
 .forgot-password:hover {
     color: #1e40af;
@@ -519,7 +549,6 @@
     padding: 13px 0;
     margin-bottom: 14px;
     box-shadow: 0 2px 8px 0 rgba(31, 38, 135, 0.08);
-    transition: background 0.2s, box-shadow 0.2s;
 }
 .modern-login-button:hover {
     background: #1e40af;
@@ -537,7 +566,6 @@
     margin-bottom: 10px;
     margin-top: 0;
     box-shadow: none;
-    transition: background 0.2s, color 0.2s;
 }
 .outline-button:hover {
     background: #2563eb;
@@ -579,7 +607,6 @@
     text-decoration: none;
     font-weight: 600;
     margin-left: 4px;
-    transition: color 0.2s;
 }
 .signup-link:hover {
     color: #1e40af;
@@ -645,7 +672,6 @@
     --font-weight-medium: 500;
     --font-weight-bold: 600;
     
-    --transition: all 0.3s ease;
     
     --sidebar-width: 250px;
     --header-height: 70px;
@@ -757,7 +783,6 @@ body {
     text-decoration: none;
     font-weight: var(--font-weight-medium);
     font-size: 1.1rem;
-    transition: all 0.3s ease;
     margin-top: 20px;
 }
 
@@ -959,7 +984,6 @@ body {
     border: 2px solid var(--border-color);
     border-radius: var(--border-radius);
     font-size: 14px;
-    transition: border-color 0.3s ease;
 }
 
 .form-group input:focus {
@@ -988,7 +1012,6 @@ body {
     font-size: 16px;
     font-weight: var(--font-weight-medium);
     cursor: pointer;
-    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1099,7 +1122,6 @@ body {
     color: var(--text-white);
     text-decoration: none;
     border-radius: var(--border-radius);
-    transition: all 0.3s ease;
     position: relative;
     background: transparent;
     font-weight: 500;
@@ -1111,8 +1133,8 @@ body {
 }
 
 .navbar-menu li.active a {
-    background: transparent;
-    color: var(--accent-light);
+    background: none;
+    color: var(--accent);
 }
 
 .navbar-menu a i {
@@ -1147,7 +1169,6 @@ body {
     padding: 8px 16px;
     border-radius: var(--border-radius);
     cursor: pointer;
-    transition: background 0.3s ease;
     display: flex;
     align-items: center;
     font-size: 0.9rem;
@@ -1191,7 +1212,6 @@ body {
         transform: translateY(-100%);
         opacity: 0;
         visibility: hidden;
-        transition: all 0.3s ease;
     }
     
     .navbar-menu.mobile-open {
@@ -1273,7 +1293,6 @@ body {
     border-radius: var(--border-radius);
     cursor: pointer;
     font-weight: var(--font-weight-medium);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: inline-flex;
     align-items: center;
     text-decoration: none;
@@ -1306,7 +1325,6 @@ body {
     border-radius: var(--border-radius);
     cursor: pointer;
     font-weight: var(--font-weight-medium);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: inline-flex;
     align-items: center;
     text-decoration: none;
@@ -1341,7 +1359,6 @@ body {
     box-shadow: var(--shadow-light);
     display: flex;
     align-items: center;
-    transition: transform 0.3s ease;
 }
 
 .stat-card:hover {
@@ -1456,7 +1473,6 @@ body {
     color: var(--text-primary);
     display: flex;
     align-items: center;
-    transition: all 0.3s ease;
 }
 
 .action-btn:hover {
@@ -1535,7 +1551,6 @@ body {
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-light);
     padding: 20px;
-    transition: all 0.3s ease;
 }
 
 .book-card:hover {
@@ -1658,7 +1673,6 @@ body {
     font-size: 1.2rem;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: color 0.3s ease;
 }
 
 .close-btn:hover {
@@ -1699,7 +1713,6 @@ body {
     border: 2px solid var(--border-color);
     border-radius: var(--border-radius);
     font-size: 14px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     background: var(--bg-card);
     color: var(--text-primary);
 }
@@ -1764,7 +1777,6 @@ body {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    transition: all 0.3s ease;
 }
 
 .book-item:hover {
@@ -1961,7 +1973,6 @@ body {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     padding: 24px;
-    transition: var(--transition);
 }
 
 .captain-card:hover {
@@ -2027,7 +2038,6 @@ body {
     border-radius: var(--border-radius);
     cursor: pointer;
     font-size: 14px;
-    transition: var(--transition);
 }
 
 .danger-btn:hover {
@@ -2112,7 +2122,6 @@ body {
     padding: 24px;
     border-radius: var(--border-radius);
     text-align: center;
-    transition: var(--transition);
 }
 
 .feature-card:hover {
@@ -2255,7 +2264,6 @@ body {
     padding: 20px;
     background: var(--bg-secondary);
     border-radius: var(--border-radius);
-    transition: var(--transition);
 }
 
 .contact-option:hover {
@@ -2310,7 +2318,6 @@ body {
     padding: 8px 16px;
     border-radius: var(--border-radius);
     cursor: pointer;
-    transition: var(--transition);
 }
 
 .contact-link:not(a):hover {
@@ -2341,7 +2348,6 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: var(--transition);
 }
 
 .faq-question:hover {
@@ -2356,7 +2362,6 @@ body {
 
 .faq-question i {
     color: var(--text-secondary);
-    transition: var(--transition);
 }
 
 .faq-answer {
@@ -2520,7 +2525,7 @@ body {
     }
     
     .navbar-menu li.active a {
-        background: var(--primary-color);
+        background: var(--accent); /* Use only the orange accent color */
         color: var(--text-white);
     }
     
@@ -2815,7 +2820,9 @@ body {
         padding: 12px 0 !important;
         min-width: 100px;
         border-radius: 8px !important;
+        background: var(--primary-color) !important;
         color: var(--text-white) !important;
+        border: 1.5px solid var(--primary-dark) !important;
         box-shadow: var(--shadow-light) !important;
     }
     .empty-state {
