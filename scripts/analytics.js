@@ -296,15 +296,136 @@ class AnalyticsManager {
     }
 
     openExportModal() {
-        // Implement export modal opening logic here
+        const modal = document.getElementById('exportModal');
+        if (modal) {
+            modal.style.display = 'block';
+        }
     }
 
     closeExportModal() {
-        // Implement export modal closing logic here
+        const modal = document.getElementById('exportModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
     }
 
-    processExport() {
-        // Implement export processing logic here
+    async processExport() {
+        // Fetch latest analytics and inventory data
+        const timeRangeDays = this.currentTimeRange || 30;
+        const now = new Date();
+        const startDate = new Date(now.getTime() - timeRangeDays * 24 * 60 * 60 * 1000);
+        // Get checkouts in range
+        const checkoutsSnapshot = await window.firestore.collection('checkouts')
+            .where('checkoutDate', '>=', startDate)
+            .get();
+        const checkouts = checkoutsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Get all books
+        const booksSnapshot = await window.firestore.collection('books').get();
+        const books = booksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // --- Analytics Data ---
+        const totalCheckouts = checkouts.length;
+        const uniqueBorrowers = new Set(checkouts.map(c => c.borrowerID)).size;
+        const totalBooks = books.reduce((sum, b) => sum + (b.copies || 0), 0);
+        const availableBooks = books.reduce((sum, b) => sum + (b.availableCopies || 0), 0);
+        const checkedOutBooks = books.reduce((sum, b) => sum + ((b.copies || 0) - (b.availableCopies || 0)), 0);
+        const utilizationRate = totalBooks > 0 ? ((checkedOutBooks / totalBooks) * 100).toFixed(1) : 0;
+        const avgDuration = checkouts.length > 0 ?
+            (checkouts.reduce((sum, c) => {
+                if (c.returnDate && c.checkoutDate) {
+                    const out = c.checkoutDate.toDate ? c.checkoutDate.toDate() : new Date(c.checkoutDate);
+                    const ret = c.returnDate.toDate ? c.returnDate.toDate() : new Date(c.returnDate);
+                    return sum + ((ret - out) / (1000 * 60 * 60 * 24));
+                }
+                return sum;
+            }, 0) / checkouts.length).toFixed(1)
+            : 0;
+
+        // Popular Books
+        const bookCounts = {};
+        checkouts.forEach(c => {
+            bookCounts[c.bookId] = (bookCounts[c.bookId] || 0) + 1;
+        });
+        const popularBooks = Object.entries(bookCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([bookId, count]) => {
+                const book = books.find(b => b.id === bookId);
+                return book ? `${book.title} (${count})` : `Unknown (${count})`;
+            });
+
+        // Active Borrowers
+        const borrowerCounts = {};
+        checkouts.forEach(c => {
+            borrowerCounts[c.borrowerID] = (borrowerCounts[c.borrowerID] || 0) + 1;
+        });
+        const activeBorrowers = Object.entries(borrowerCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([id, count]) => {
+                const name = checkouts.find(c => c.borrowerID === id)?.borrowerName || id;
+                return `${name} (${count})`;
+            });
+
+        // Overdue Items
+        const overdueItems = checkouts.filter(c => !c.returned && c.dueDate && new Date(c.dueDate) < now)
+            .map(c => {
+                const book = books.find(b => b.id === c.bookId);
+                return `${book ? book.title : 'Unknown'} - ${c.borrowerName} (${c.borrowerID})`;
+            });
+
+        // Low Stock
+        const lowStock = books.filter(b => (b.availableCopies || 0) <= 2)
+            .map(b => `${b.title} (${b.availableCopies || 0} left)`);
+
+        // --- Inventory Data ---
+        const allBooksList = books.map(b => {
+            return `${b.title} | Author: ${b.author || ''} | Category: ${b.category || ''} | Total: ${b.copies || 0} | Available: ${b.availableCopies || 0}`;
+        });
+
+        // --- Compose Report ---
+        let report = '';
+        report += `BookPass Analytics & Inventory Report\n`;
+        report += `Generated: ${now.toLocaleString()}\n`;
+        report += `Time Range: Last ${timeRangeDays} days\n`;
+        report += `\n--- Key Metrics ---\n`;
+        report += `Total Checkouts: ${totalCheckouts}\n`;
+        report += `Unique Borrowers: ${uniqueBorrowers}\n`;
+        report += `Total Books: ${totalBooks}\n`;
+        report += `Books Available: ${availableBooks}\n`;
+        report += `Books Checked Out: ${checkedOutBooks}\n`;
+        report += `Utilization Rate: ${utilizationRate}%\n`;
+        report += `Avg. Loan Duration: ${avgDuration} days\n`;
+
+        report += `\n--- Popular Books ---\n`;
+        report += popularBooks.length ? popularBooks.join('\n') : 'No data';
+        report += `\n\n--- Active Borrowers ---\n`;
+        report += activeBorrowers.length ? activeBorrowers.join('\n') : 'No data';
+        report += `\n\n--- Overdue Items ---\n`;
+        report += overdueItems.length ? overdueItems.join('\n') : 'None';
+        report += `\n\n--- Low Stock Alert ---\n`;
+        report += lowStock.length ? lowStock.join('\n') : 'None';
+
+        report += `\n\n--- All Books in Library ---\n`;
+        report += allBooksList.length ? allBooksList.join('\n') : 'No books in library.';
+
+        report += `\n\n--- End of Report ---\n`;
+
+        // Download as .txt file
+        const blob = new Blob([report], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `BookPass_Report_${now.toISOString().slice(0,10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+
+        // Close modal after export
+        this.closeExportModal();
     }
 
     // Add other methods as needed, following the same pattern
@@ -351,11 +472,20 @@ if (!mobileMenuToggle) {
 
 // Initialize analytics manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
+    function tryInitAnalyticsManager() {
         if (window.storageManager && window.navigationManager) {
-            window.analyticsManager = new AnalyticsManager();
+            if (!window.analyticsManager) {
+                window.analyticsManager = new AnalyticsManager();
+            }
+            return true;
         }
-    }, 100);
+        return false;
+    }
+    if (!tryInitAnalyticsManager()) {
+        const interval = setInterval(() => {
+            if (tryInitAnalyticsManager()) clearInterval(interval);
+        }, 100);
+    }
 
     const body = document.querySelector('body');
     body.style.opacity = 0;

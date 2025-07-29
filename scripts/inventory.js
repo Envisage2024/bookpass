@@ -109,7 +109,16 @@ class InventoryManager {
                         <span><strong>Total Copies:</strong> ${book.copies}</span>
                         <span><strong>Available:</strong> ${book.availableCopies}</span>
                     </div>
-                    ${book.coverUrl ? `<div class='book-cover-thumb'><img src='${book.coverUrl}' alt='Cover' style='max-width:80px;max-height:100px;border-radius:4px;margin-bottom:6px;'></div>` : ''}
+                    <div class='book-cover-row' style='display:flex;gap:8px;'>
+                        <div class='book-cover-thumb'>
+                            ${book.coverUrl ? `<img src='${book.coverUrl}' alt='Front Cover' style='max-width:80px;max-height:100px;border-radius:4px;margin-bottom:6px;'>` : `<div style='width:80px;height:100px;background:#eee;border-radius:4px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:12px;'>No Front Cover</div>`}
+                            <div style='text-align:center;font-size:11px;color:#888;'>Front</div>
+                        </div>
+                        <div class='book-cover-thumb'>
+                            ${book.backCoverUrl ? `<img src='${book.backCoverUrl}' alt='Back Cover' style='max-width:80px;max-height:100px;border-radius:4px;margin-bottom:6px;'>` : `<div style='width:80px;height:100px;background:#eee;border-radius:4px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:12px;'>No Back Cover</div>`}
+                            <div style='text-align:center;font-size:11px;color:#888;'>Back</div>
+                        </div>
+                    </div>
                     ${book.publisher ? `<p><strong>Publisher:</strong> ${this.escapeHtml(book.publisher)}</p>` : ''}
                     ${book.year ? `<p><strong>Year:</strong> ${book.year}</p>` : ''}
                     ${book.location ? `<p><strong>Location:</strong> ${this.escapeHtml(book.location)}</p>` : ''}
@@ -239,8 +248,12 @@ class InventoryManager {
             copies: enteredCopies,
             location: formData.get('location')?.trim() || '',
             description: formData.get('description')?.trim() || '',
-            coverUrl: formData.get('coverUrl') || ''
+            coverUrl: formData.get('coverUrl') || '',
+            backCoverUrl: formData.get('backCoverUrl') || ''
         };
+        // Debug logs for image URLs
+        console.log('[BookPass] Saving book with coverUrl:', bookData.coverUrl);
+        console.log('[BookPass] Saving book with backCoverUrl:', bookData.backCoverUrl);
         try {
             if (this.currentEditingBook) {
                 // Editing existing book
@@ -286,7 +299,9 @@ class InventoryManager {
                 }
             }
             this.closeBookModal();
-            this.loadBooks();
+            // Force reload of books and page to ensure UI updates
+            await this.loadBooks();
+            window.location.reload();
         } catch (error) {
             console.error('Error saving book:', error);
             this.navigationManager.showNotification(error.message || 'Error saving book', 'error');

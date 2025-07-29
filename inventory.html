@@ -198,13 +198,23 @@
                     </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group" style="width:100%">
-                        <label for="bookCover">Book Cover</label>
+                    <div class="form-group" style="width:48%">
+                        <label for="bookCover">Front Cover</label>
                         <div id="coverDropZone" class="cover-drop-zone">
                             <input type="file" id="bookCover" name="cover" accept="image/*" style="display:none">
                             <div id="coverPreview" class="cover-preview">Drag & drop or click to select an image</div>
+                            <div id="coverProgressBar" style="display:none;width:100%;height:6px;background:#eee;border-radius:3px;margin-top:4px;overflow:hidden"><div id="coverProgress" style="height:100%;width:0;background:#007bff;transition:width 0.2s;"></div></div>
                         </div>
                         <input type="hidden" id="bookCoverUrl" name="coverUrl">
+                    </div>
+                    <div class="form-group" style="width:48%">
+                        <label for="bookBackCover">Back Cover</label>
+                        <div id="backCoverDropZone" class="cover-drop-zone">
+                            <input type="file" id="bookBackCover" name="backCover" accept="image/*" style="display:none">
+                            <div id="backCoverPreview" class="cover-preview">Drag & drop or click to select an image</div>
+                            <div id="backCoverProgressBar" style="display:none;width:100%;height:6px;background:#eee;border-radius:3px;margin-top:4px;overflow:hidden"><div id="backCoverProgress" style="height:100%;width:0;background:#007bff;transition:width 0.2s;"></div></div>
+                        </div>
+                        <input type="hidden" id="bookBackCoverUrl" name="backCoverUrl">
                     </div>
                 </div>
                 <div class="form-row">
@@ -338,82 +348,196 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-// --- Cover image upload logic ---
+// --- Improved cover image upload logic for front and back ---
 const imgbbApiKey = "01e3fdc712dfe3d20eefd5eab8738bda";
 const coverDropZone = document.getElementById('coverDropZone');
 const bookCoverInput = document.getElementById('bookCover');
 const coverPreview = document.getElementById('coverPreview');
 const bookCoverUrlInput = document.getElementById('bookCoverUrl');
 
-function showCoverPreview(file) {
-  if (!file) {
-    coverPreview.innerHTML = 'Drag & drop or click to select an image';
-    return;
+const backCoverDropZone = document.getElementById('backCoverDropZone');
+const bookBackCoverInput = document.getElementById('bookBackCover');
+const backCoverPreview = document.getElementById('backCoverPreview');
+const bookBackCoverUrlInput = document.getElementById('bookBackCoverUrl');
+
+function setCoverSection(previewEl, url, inputEl, isBack) {
+  if (url) {
+    previewEl.innerHTML = `<img src="${url}" alt="${isBack ? 'Back' : 'Front'} Cover" style="max-width:120px;max-height:120px;display:block;margin:8px auto;">
+      <button type='button' class='secondary-btn btn-small' id='${isBack ? 'replaceBackCoverBtn' : 'replaceCoverBtn'}'>Replace</button>`;
+    // inputEl is always the hidden input (for URL)
+    inputEl.value = url;
+    // Add event for replace
+    setTimeout(() => {
+      const btn = document.getElementById(isBack ? 'replaceBackCoverBtn' : 'replaceCoverBtn');
+      if (btn) {
+        btn.onclick = () => {
+          inputEl.value = '';
+          // Also clear the file input if present
+          const fileInput = document.getElementById(isBack ? 'bookBackCover' : 'bookCover');
+          if (fileInput) fileInput.value = '';
+          previewEl.innerHTML = 'Drag & drop or click to select an image';
+        };
+      }
+    }, 10);
+  } else {
+    previewEl.innerHTML = 'Drag & drop or click to select an image';
+    inputEl.value = '';
+    // Also clear the file input if present
+    const fileInput = document.getElementById(isBack ? 'bookBackCover' : 'bookCover');
+    if (fileInput) fileInput.value = '';
   }
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    coverPreview.innerHTML = `<img src="${e.target.result}" alt="Cover Preview">`;
-  };
-  reader.readAsDataURL(file);
 }
 
-coverDropZone.addEventListener('click', () => bookCoverInput.click());
-coverDropZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  coverDropZone.classList.add('dragover');
-});
-coverDropZone.addEventListener('dragleave', () => coverDropZone.classList.remove('dragover'));
-coverDropZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  coverDropZone.classList.remove('dragover');
-  const file = e.dataTransfer.files[0];
-  if (file) {
-    bookCoverInput.files = e.dataTransfer.files;
-    showCoverPreview(file);
-  }
-});
-bookCoverInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  showCoverPreview(file);
-});
-
-async function uploadCoverToImgbb(file) {
-  const formData = new FormData();
-  formData.append('image', file);
-  formData.append('key', imgbbApiKey);
-  const res = await fetch('https://api.imgbb.com/1/upload', {
-    method: 'POST',
-    body: formData
+async function uploadCoverToImgbb(file, progressCallback) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('key', imgbbApiKey);
+    xhr.open('POST', 'https://api.imgbb.com/1/upload');
+    xhr.upload.onprogress = function(e) {
+      if (e.lengthComputable && typeof progressCallback === 'function') {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        progressCallback(percent);
+      }
+    };
+    xhr.onload = function() {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (data.success) resolve(data.data.url);
+        else reject(new Error('Image upload failed'));
+      } catch (err) {
+        reject(new Error('Image upload failed'));
+      }
+    };
+    xhr.onerror = function() { reject(new Error('Image upload failed')); };
+    xhr.send(formData);
   });
-  const data = await res.json();
-  if (data.success) return data.data.url;
-  throw new Error('Image upload failed');
 }
+
+function handleDropZone(dropZone, inputEl, previewEl, isBack) {
+  // dropZone: the drop area div
+  // inputEl: the file input (for file selection)
+  // previewEl: the preview div
+  // isBack: true for back cover
+  const hiddenInput = document.getElementById(isBack ? 'bookBackCoverUrl' : 'bookCoverUrl');
+  dropZone.addEventListener('click', () => {
+    if (!hiddenInput.value) inputEl.click();
+  });
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      uploadAndPreview(file, hiddenInput, previewEl, isBack);
+      inputEl.value = '';
+    }
+  });
+  inputEl.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      uploadAndPreview(file, hiddenInput, previewEl, isBack);
+      inputEl.value = '';
+    }
+  });
+}
+
+async function uploadAndPreview(file, inputEl, previewEl, isBack) {
+  previewEl.innerHTML = `<div>Uploading...</div>`;
+  try {
+    const url = await uploadCoverToImgbb(file, percent => {
+      previewEl.innerHTML = `<div>Uploading... ${percent}%</div>`;
+    });
+    setCoverSection(previewEl, url, inputEl, isBack);
+    console.log(`[BookPass] Uploaded ${isBack ? 'back' : 'front'} cover:`, url);
+  } catch (err) {
+    previewEl.innerHTML = `<div style='color:red'>Upload failed</div>`;
+    // Only clear the hidden input (URL), not the file input
+    inputEl.value = '';
+    // Also clear the file input if present
+    const fileInput = document.getElementById(isBack ? 'bookBackCover' : 'bookCover');
+    if (fileInput) fileInput.value = '';
+    console.error(`[BookPass] Upload failed for ${isBack ? 'back' : 'front'} cover`, err);
+  }
+}
+
+// Initialize drop zones
+setCoverSection(coverPreview, bookCoverUrlInput.value, bookCoverUrlInput, false);
+setCoverSection(backCoverPreview, bookBackCoverUrlInput.value, bookBackCoverUrlInput, true);
+handleDropZone(coverDropZone, bookCoverInput, coverPreview, false);
+handleDropZone(backCoverDropZone, bookBackCoverInput, backCoverPreview, true);
 
 // --- Hook into book form submit ---
 const bookForm = document.getElementById('bookForm');
 let isUploadingCover = false;
 bookForm.addEventListener('submit', async function(e) {
+  const saveBtn = bookForm.querySelector('button[type="submit"]');
+  if (saveBtn) saveBtn.disabled = true;
   if (isUploadingCover) return;
   const file = bookCoverInput.files[0];
-  if (file && !bookCoverUrlInput.value) {
+  const backFile = bookBackCoverInput.files[0];
+  let needsUpload = false;
+  if (file && !bookCoverUrlInput.value) needsUpload = true;
+  if (backFile && !bookBackCoverUrlInput.value) needsUpload = true;
+  if (needsUpload) {
     e.preventDefault();
     isUploadingCover = true;
-    coverPreview.innerHTML += '<div>Uploading cover...</div>';
-    try {
-      const url = await uploadCoverToImgbb(file);
-      bookCoverUrlInput.value = url;
-      coverPreview.innerHTML += '<div>Upload complete!</div>';
-      isUploadingCover = false;
-      // Call inventoryManager.handleBookSubmit directly if available
-      if (window.inventoryManager && typeof window.inventoryManager.handleBookSubmit === 'function') {
-        window.inventoryManager.handleBookSubmit(new Event('submit', { bubbles: true, cancelable: true }));
-      } else {
-        bookForm.submit();
+    // Progress bar elements
+    const coverBar = document.getElementById('coverProgressBar');
+    const coverProg = document.getElementById('coverProgress');
+    const backBar = document.getElementById('backCoverProgressBar');
+    const backProg = document.getElementById('backCoverProgress');
+    if (file && !bookCoverUrlInput.value) {
+      coverBar.style.display = 'block';
+      coverProg.style.width = '0%';
+      coverPreview.innerHTML += '<div>Uploading cover...</div>';
+      try {
+        const url = await uploadCoverToImgbb(file, percent => {
+          coverProg.style.width = percent + '%';
+        });
+        bookCoverUrlInput.value = url;
+        coverPreview.innerHTML += '<div>Upload complete!</div>';
+        coverProg.style.width = '100%';
+        setTimeout(() => { coverBar.style.display = 'none'; }, 800);
+      } catch (err) {
+        coverPreview.innerHTML += `<div style='color:red'>Upload failed</div>`;
+        coverBar.style.display = 'none';
+        isUploadingCover = false;
+        if (saveBtn) saveBtn.disabled = false;
+        return;
       }
-    } catch (err) {
-      coverPreview.innerHTML += `<div style='color:red'>Upload failed</div>`;
-      isUploadingCover = false;
+    }
+    if (backFile && !bookBackCoverUrlInput.value) {
+      backBar.style.display = 'block';
+      backProg.style.width = '0%';
+      backCoverPreview.innerHTML += '<div>Uploading back cover...</div>';
+      try {
+        const url = await uploadCoverToImgbb(backFile, percent => {
+          backProg.style.width = percent + '%';
+        });
+        bookBackCoverUrlInput.value = url;
+        backCoverPreview.innerHTML += '<div>Upload complete!</div>';
+        backProg.style.width = '100%';
+        setTimeout(() => { backBar.style.display = 'none'; }, 800);
+      } catch (err) {
+        backCoverPreview.innerHTML += `<div style='color:red'>Upload failed</div>`;
+        backBar.style.display = 'none';
+        isUploadingCover = false;
+        if (saveBtn) saveBtn.disabled = false;
+        return;
+      }
+    }
+    isUploadingCover = false;
+    // Call inventoryManager.handleBookSubmit directly if available
+    if (window.inventoryManager && typeof window.inventoryManager.handleBookSubmit === 'function') {
+      window.inventoryManager.handleBookSubmit(new Event('submit', { bubbles: true, cancelable: true }));
+    } else {
+      bookForm.submit();
     }
     return;
   }
