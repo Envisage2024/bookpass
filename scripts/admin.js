@@ -544,4 +544,15 @@ document.addEventListener('DOMContentLoaded', () => {
             window.adminManager.init();
         }
     }, 100);
+
+    // Disable all buttons on click to prevent double entry
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.tagName === 'BUTTON') {
+            const btn = e.target;
+            if (!btn.disabled) {
+                btn.disabled = true;
+                setTimeout(() => { btn.disabled = false; }, 2000);
+            }
+        }
+    }, true);
 });

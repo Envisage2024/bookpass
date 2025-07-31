@@ -16,7 +16,7 @@ firebase.initializeApp(firebaseConfig);
 window.firebaseAuth = firebase.auth();
 window.firebaseAuth.onAuthStateChanged(function(user) {
   if (!user) {
-    window.location.href = "login.html";
+    window.location.href = "index.html";
   }
 });
 
@@ -50,6 +50,14 @@ class CheckinManager {
         const statusFilter = document.getElementById('statusFilter');
         const typeFilter = document.getElementById('typeFilter');
         
+        // Add Teacher option to type filter if not present
+        if (typeFilter && !Array.from(typeFilter.options).some(opt => opt.value === 'teacher')) {
+            const teacherOption = document.createElement('option');
+            teacherOption.value = 'teacher';
+            teacherOption.textContent = 'Teacher';
+            typeFilter.appendChild(teacherOption);
+        }
+
         if (statusFilter) {
             statusFilter.addEventListener('change', () => this.applyFilters());
         }
@@ -158,7 +166,9 @@ class CheckinManager {
     }
 
     showCheckinModal(checkout) {
-        const book = this.storageManager.getBookById(checkout.bookId);
+        let book = this.storageManager.getBookById(checkout.bookId);
+        // Fallback: use bookTitle from checkout if book is not found or has no title
+        let bookTitle = (book && book.title) ? book.title : (checkout.bookTitle || 'Unknown Book');
         const isOverdue = this.storageManager.isOverdue(checkout);
         const daysOverdue = isOverdue ? this.storageManager.getDaysOverdue(checkout) : 0;
 
@@ -171,13 +181,17 @@ class CheckinManager {
                 maxReturn = totalQty - returnedQty;
                 if (maxReturn < 1) maxReturn = 1;
             }
+            // Determine display type
+            let displayType = 'Student';
+            if (checkout.borrowerType === 'class-captain') displayType = 'Class Captain';
+            else if (checkout.borrowerType === 'teacher') displayType = 'Teacher';
             detailsContainer.innerHTML = `
                 <div class="checkin-book-info">
-                    <h4>${book ? this.escapeHtml(book.title) : 'Unknown Book'}</h4>
+                    <h4>${this.escapeHtml(bookTitle)}</h4>
                     <p><strong>Borrower:</strong> ${this.escapeHtml(checkout.borrowerName)}</p>
                     <p><strong>ID:</strong> ${this.escapeHtml(checkout.borrowerID)}</p>
                     ${checkout.bookUniqueId ? `<p><strong>Book Unique ID:</strong> ${this.escapeHtml(checkout.bookUniqueId)}</p>` : ''}
-                    <p><strong>Type:</strong> ${checkout.borrowerType === 'class-captain' ? 'Class Captain' : 'Student'}</p>
+                    <p><strong>Type:</strong> ${displayType}</p>
                     ${checkout.className ? `<p><strong>Class:</strong> ${this.escapeHtml(checkout.className)}</p>` : ''}
                     <p><strong>Checked out:</strong> ${this.formatDate(checkout.checkoutDate)}</p>
                     <p><strong>Due date:</strong> ${this.formatDate(checkout.dueDate)}</p>
@@ -244,13 +258,31 @@ class CheckinManager {
             const remaining = totalQty - returnedQty;
             leftToReturn = `<p class="left-to-return"><strong>Books left to return:</strong> <span class="badge">${remaining}</span></p>`;
         }
+        // Determine display type
+        let displayType = 'Student';
+        if (checkout.borrowerType === 'class-captain') displayType = 'Class Captain';
+        else if (checkout.borrowerType === 'teacher') displayType = 'Teacher';
+
+        // Book cover image logic
+        let imageUrl = '';
+        if (book) {
+            imageUrl = book.coverUrl || book.imageUrl || '';
+        }
+        // Only use imageUrl if it looks like a valid image path
+        if (!imageUrl || !/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(imageUrl)) {
+            imageUrl = 'images/book.png';
+        }
+
         return `
             <div class="checkout-item" data-checkout-id="${checkout.id}">
-                <div class="checkout-info">
+                <div class="checkout-book-image" style="width:60px;height:90px;display:flex;align-items:center;justify-content:center;background:#f8f8f8;border-radius:8px;overflow:hidden;float:left;margin-right:16px;">
+                    <img src="${this.escapeHtml(imageUrl)}" alt="Book cover" style="max-width:100%;max-height:100%;object-fit:cover;" onerror="this.src='images/book.png'" />
+                </div>
+                <div class="checkout-info" style="overflow:hidden;">
                     <h4>${book ? this.escapeHtml(book.title) : 'Unknown Book'}</h4>
                     <p><strong>Borrower:</strong> ${this.escapeHtml(checkout.borrowerName)} (${this.escapeHtml(checkout.borrowerID)})</p>
                     ${checkout.bookUniqueId ? `<p><strong>Book Unique ID:</strong> ${this.escapeHtml(checkout.bookUniqueId)}</p>` : ''}
-                    <p><strong>Type:</strong> ${checkout.borrowerType === 'class-captain' ? 'Class Captain' : 'Student'}</p>
+                    <p><strong>Type:</strong> ${displayType}</p>
                     ${checkout.className ? `<p><strong>Class:</strong> ${this.escapeHtml(checkout.className)}</p>` : ''}
                     <p><strong>Checked out:</strong> ${this.formatDate(checkout.checkoutDate)}</p>
                     <p><strong>Due date:</strong> ${this.formatDate(checkout.dueDate)}</p>
@@ -602,6 +634,11 @@ class CheckinManager {
             bookInfoHtml = `<p><strong>Title:</strong> Unknown Book</p>`;
         }
 
+        // Determine display type
+        let displayType = 'Student';
+        if (checkout.borrowerType === 'class-captain') displayType = 'Class Captain';
+        else if (checkout.borrowerType === 'teacher') displayType = 'Teacher';
+
         const detailsHTML = `
             <div class="checkout-details-modal">
                 <div class="details-section">
@@ -613,7 +650,7 @@ class CheckinManager {
                     <h4>Borrower Information</h4>
                     <p><strong>Name:</strong> ${this.escapeHtml(checkout.borrowerName)}</p>
                     <p><strong>ID:</strong> ${this.escapeHtml(checkout.borrowerID)}</p>
-                    <p><strong>Type:</strong> ${checkout.borrowerType === 'class-captain' ? 'Class Captain' : 'Student'}</p>
+                    <p><strong>Type:</strong> ${displayType}</p>
                     ${checkout.className ? `<p><strong>Class:</strong> ${this.escapeHtml(checkout.className)}</p>` : ''}
                     ${checkout.contactEmail ? `<p><strong>Email:</strong> ${this.escapeHtml(checkout.contactEmail)}</p>` : ''}
                 </div>
@@ -747,4 +784,15 @@ document.addEventListener('DOMContentLoaded', () => {
             window.checkinManager = new CheckinManager();
         }
     }, 100);
+
+    // Disable all buttons on click to prevent double entry
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.tagName === 'BUTTON') {
+            const btn = e.target;
+            if (!btn.disabled) {
+                btn.disabled = true;
+                setTimeout(() => { btn.disabled = false; }, 2000);
+            }
+        }
+    }, true);
 });

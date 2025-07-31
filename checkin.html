@@ -103,10 +103,10 @@
           logoutBtn.addEventListener('click', function() {
             if (window.firebaseAuth) {
               window.firebaseAuth.signOut().then(function() {
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
               });
             } else {
-              window.location.href = 'login.html';
+              window.location.href = 'index.html';
             }
           });
         }

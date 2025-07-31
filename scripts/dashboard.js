@@ -23,7 +23,7 @@ window.firebaseAuth.onAuthStateChanged(function(user) {
       description: 'User logged out',
       user: 'Unknown'
     });
-    window.location.href = "login.html";
+    window.location.href = "index.html";
   }
 });
 
@@ -39,7 +39,7 @@ function setupLogoutButton() {
             description: 'User signed out',
             user: window.firebaseAuth.currentUser?.email || 'Unknown'
           });
-          window.location.href = 'login.html';
+          window.location.href = 'index.html';
         });
       } else {
         window.logActivity && window.logActivity({
@@ -47,7 +47,7 @@ function setupLogoutButton() {
           description: 'User signed out',
           user: 'Unknown'
         });
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
       }
     });
   }

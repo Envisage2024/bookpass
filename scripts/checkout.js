@@ -17,7 +17,7 @@ firebase.initializeApp(firebaseConfig);
 window.firebaseAuth = firebase.auth();
 window.firebaseAuth.onAuthStateChanged(function(user) {
   if (!user) {
-    window.location.href = "login.html";
+    window.location.href = "index.html";
   }
 });
 
@@ -79,18 +79,54 @@ class CheckoutManager {
         const captainGroup = document.getElementById('captainGroup');
         const studentGroup = document.getElementById('studentGroup');
         const studentIdGroup = document.getElementById('studentIdGroup');
-        
+        const teacherIdGroup = document.getElementById('teacherIdGroup');
+        const borrowerNameGroup = document.getElementById('borrowerNameGroup');
+        const rfidSection = document.getElementById('rfidSection');
+        const bookUniqueIdGroup = document.getElementById('bookUniqueIdGroup');
+
         if (type === 'class-captain') {
             if (classGroup) classGroup.style.display = 'block';
             if (captainGroup) captainGroup.style.display = 'block';
             if (studentGroup) studentGroup.style.display = 'none';
             if (studentIdGroup) studentIdGroup.style.display = 'none';
+            if (teacherIdGroup) teacherIdGroup.style.display = 'none';
+            if (borrowerNameGroup) borrowerNameGroup.style.display = 'block';
+            if (rfidSection) rfidSection.style.display = 'none';
+            if (bookUniqueIdGroup) bookUniqueIdGroup.style.display = 'none';
             this.loadClassCaptains();
-        } else {
+        } else if (type === 'teacher') {
+            if (classGroup) classGroup.style.display = 'none';
+            if (captainGroup) captainGroup.style.display = 'none';
+            if (studentGroup) studentGroup.style.display = 'block'; // Show Student Options for teacher
+            if (studentIdGroup) studentIdGroup.style.display = 'none'; // Hide Student ID for teacher
+            if (teacherIdGroup) teacherIdGroup.style.display = 'block';
+            // The rest handled by studentOption change event
+        } else if (type === 'student') {
             if (classGroup) classGroup.style.display = 'none';
             if (captainGroup) captainGroup.style.display = 'none';
             if (studentGroup) studentGroup.style.display = 'block';
             if (studentIdGroup) studentIdGroup.style.display = 'block';
+            if (teacherIdGroup) teacherIdGroup.style.display = 'none';
+            if (borrowerNameGroup) borrowerNameGroup.style.display = 'none';
+            if (rfidSection) rfidSection.style.display = 'none';
+            if (bookUniqueIdGroup) bookUniqueIdGroup.style.display = 'none';
+        } else {
+            if (classGroup) classGroup.style.display = 'none';
+            if (captainGroup) captainGroup.style.display = 'none';
+            if (studentGroup) studentGroup.style.display = 'none';
+            if (studentIdGroup) studentIdGroup.style.display = 'none';
+            if (teacherIdGroup) teacherIdGroup.style.display = 'none';
+            if (borrowerNameGroup) borrowerNameGroup.style.display = 'none';
+            if (rfidSection) rfidSection.style.display = 'none';
+            if (bookUniqueIdGroup) bookUniqueIdGroup.style.display = 'none';
+        }
+        // For teacher, trigger studentOption logic to show/hide name/rfid
+        if (type === 'teacher' || type === 'student') {
+            const studentOption = document.getElementById('studentOption');
+            if (studentOption) {
+                const event = new Event('change');
+                studentOption.dispatchEvent(event);
+            }
         }
         this.validateForm();
     }
@@ -167,8 +203,15 @@ class CheckoutManager {
     async loadAvailableBooks() {
         try {
             const snapshot = await this.db.collection('books').where('availableCopies', '>', 0).get();
-            console.log('Firestore books snapshot:', snapshot.docs.map(doc => doc.data()));
-            this.availableBooks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Map Firestore data, using coverUrl as the main image
+            this.availableBooks = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    imageUrl: data.coverUrl || data.imageUrl || '' // Prefer coverUrl, fallback to imageUrl, else blank
+                };
+            });
             if (this.availableBooks.length === 0) {
                 this.navigationManager.showNotification('No books found with available copies.', 'warning');
             }
@@ -199,9 +242,13 @@ class CheckoutManager {
     createBookItem(book) {
         const isSelected = this.selectedBooks.some(selected => selected.id === book.id);
         const selectedClass = isSelected ? 'selected' : '';
-        
+        // Only use imageUrl if it looks like a valid image path (not empty, not a default icon, not a font-awesome class)
+        let imageUrl = (book.imageUrl && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(book.imageUrl)) ? book.imageUrl : 'images/book.png';
         return `
             <div class="book-item ${selectedClass}" onclick="checkoutManager.toggleBookSelection('${book.id}')">
+                <div class="book-item-image" style="width:90px;height:130px;display:flex;align-items:center;justify-content:center;background:#f8f8f8;border-radius:8px;overflow:hidden;">
+                    <img src="${this.escapeHtml(imageUrl)}" alt="Book cover" style="max-width:100%;max-height:100%;object-fit:cover;" onerror="this.src='images/book.png'" />
+                </div>
                 <div class="book-item-info">
                     <h4>${this.escapeHtml(book.title)}</h4>
                     <p>by ${this.escapeHtml(book.author)} • ${this.escapeHtml(book.category)}</p>
@@ -267,8 +314,12 @@ class CheckoutManager {
                     </div>
                 `;
             }
+            let imageUrl = (book.imageUrl && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(book.imageUrl)) ? book.imageUrl : 'images/book.png';
             return `
                 <div class="selected-book-item">
+                    <div class="selected-book-image" style="width:60px;height:90px;display:flex;align-items:center;justify-content:center;background:#f8f8f8;border-radius:8px;overflow:hidden;">
+                        <img src="${this.escapeHtml(imageUrl)}" alt="Book cover" style="max-width:100%;max-height:100%;object-fit:cover;" onerror="this.src='images/book.png'" />
+                    </div>
                     <div class="selected-book-info">
                         <h5>${this.escapeHtml(book.title)}</h5>
                         <p>${this.escapeHtml(book.author)}</p>
@@ -323,7 +374,7 @@ class CheckoutManager {
         if (!form || !processBtn) return false;
         const formData = new FormData(form);
         const borrowerType = formData.get('borrowerType');
-        let borrowerName, borrowerID, className;
+        let borrowerName, borrowerID, className, teacherID;
         if (borrowerType === 'class-captain') {
             const captainSelect = document.getElementById('classCaptain');
             const selectedCaptainId = captainSelect?.value;
@@ -339,6 +390,10 @@ class CheckoutManager {
             borrowerName = captain.name;
             borrowerID = captain.id;
             className = captain.className;
+        } else if (borrowerType === 'teacher') {
+            borrowerName = formData.get('borrowerName')?.trim();
+            teacherID = formData.get('teacherID')?.trim();
+            borrowerID = teacherID;
         } else {
             borrowerName = formData.get('borrowerName')?.trim();
             borrowerID = formData.get('borrowerID')?.trim();
@@ -395,6 +450,17 @@ class CheckoutManager {
                 dueDate: formData.get('dueDate'),
                 notes: formData.get('notes')?.trim() || '',
                 className: formData.get('className') || ''
+            };
+        } else if (borrowerType === 'teacher') {
+            checkoutData = {
+                borrowerType: borrowerType,
+                borrowerName: formData.get('borrowerName').trim(),
+                borrowerID: formData.get('teacherID').trim(),
+                teacherID: formData.get('teacherID').trim(),
+                dueDate: formData.get('dueDate'),
+                notes: formData.get('notes')?.trim() || '',
+                className: '',
+                bookUniqueId: ''
             };
         } else {
             checkoutData = {
@@ -478,16 +544,28 @@ class CheckoutManager {
         }
         const successDiv = document.getElementById('checkoutSuccess');
         const messageDiv = document.getElementById('successMessage');
-        
         if (!successDiv || !messageDiv) return;
 
         const bookCount = checkouts.length;
         const bookText = bookCount === 1 ? 'book' : 'books';
-        
+        // Borrower type display (use first checkout record if available, fallback to borrowerData)
+        let typeValue = (checkouts && checkouts.length > 0 && checkouts[0].borrowerType) ? checkouts[0].borrowerType : borrowerData.borrowerType;
+        let borrowerTypeDisplay = '';
+        if (typeValue === 'class-captain') {
+            borrowerTypeDisplay = 'Class Captain';
+        } else if (typeValue === 'teacher') {
+            borrowerTypeDisplay = 'Teacher';
+        } else if (typeValue === 'student') {
+            borrowerTypeDisplay = 'Student';
+        } else {
+            borrowerTypeDisplay = typeValue || '';
+        }
+
         messageDiv.innerHTML = `
             <p><strong>${borrowerData.borrowerName}</strong> (${borrowerData.borrowerID})</p>
+            <p>Type: <strong>${borrowerTypeDisplay}</strong></p>
             <p>Due date: <strong>${this.navigationManager.formatDate(borrowerData.dueDate)}</strong></p>
-            ${borrowerData.borrowerType === 'class-captain' ? `<p>Class: <strong>${borrowerData.className}</strong></p>` : ''}
+            ${typeValue === 'class-captain' ? `<p>Class: <strong>${borrowerData.className}</strong></p>` : ''}
             <div class="checkout-summary">
                 <h4>Books checked out:</h4>
                 <ul>
@@ -505,13 +583,11 @@ class CheckoutManager {
         `;
 
         successDiv.style.display = 'block';
-        
         // Hide the form temporarily
         const container = document.querySelector('.checkout-container');
         if (container) {
             container.style.display = 'none';
         }
-
         // Scroll to success message
         successDiv.scrollIntoView({ behavior: 'smooth' });
     }
@@ -587,10 +663,21 @@ window.resetCheckoutForm = () => {
 };
 
 // Initialize checkout manager when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         if (window.navigationManager) {
             window.checkoutManager = new CheckoutManager();
         }
     }, 100);
+
+    // Disable all buttons on click to prevent double entry
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.tagName === 'BUTTON') {
+            const btn = e.target;
+            if (!btn.disabled) {
+                btn.disabled = true;
+                setTimeout(() => { btn.disabled = false; }, 2000);
+            }
+        }
+    }, true);
 });

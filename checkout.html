@@ -101,10 +101,10 @@
           logoutBtn.addEventListener('click', function() {
             if (window.firebaseAuth) {
               window.firebaseAuth.signOut().then(function() {
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
               });
             } else {
-              window.location.href = 'login.html';
+              window.location.href = 'index.html';
             }
           });
         }
@@ -127,6 +127,7 @@
                                 <option value="">Select Type</option>
                                 <option value="student">Student (Personal Use)</option>
                                 <option value="class-captain">Class Captain (Classroom Use)</option>
+                                <option value="teacher">Teacher</option>
                             </select>
                         </div>
 
@@ -137,6 +138,11 @@
                                 <option value="manual">Manual Entry</option>
                                 <option value="rfid">Use RFID Card</option>
                             </select>
+                        </div>
+
+                        <div class="form-group" id="teacherIdGroup" style="display: none;">
+                            <label for="teacherID">Teacher ID *</label>
+                            <input type="text" id="teacherID" name="teacherID" required>
                         </div>
 
                         <div class="form-group" id="borrowerNameGroup" style="display: none;">
@@ -248,20 +254,44 @@
             const borrowerNameGroup = document.getElementById('borrowerNameGroup');
             const studentIdGroup = document.getElementById('studentIdGroup');
             const bookUniqueIdGroup = document.getElementById('bookUniqueIdGroup');
+            const teacherIdGroup = document.getElementById('teacherIdGroup');
 
-            borrowerType.addEventListener('change', function() {
+            // On page load, forcibly hide student fields if teacher is selected
+            function updateBorrowerFields() {
+                studentIdGroup.style.display = 'none';
+                studentGroup.style.display = 'none';
                 if (borrowerType.value === 'student') {
                     studentGroup.style.display = 'block';
+                    teacherIdGroup.style.display = 'none';
+                    borrowerNameGroup.style.display = 'none';
+                } else if (borrowerType.value === 'teacher') {
+                    studentGroup.style.display = 'none';
+                    studentIdGroup.style.display = 'none';
+                    rfidSection.style.display = 'none';
+                    borrowerNameGroup.style.display = 'block';
+                    bookUniqueIdGroup.style.display = 'none';
+                    teacherIdGroup.style.display = 'block';
                 } else {
                     studentGroup.style.display = 'none';
+                    studentIdGroup.style.display = 'none';
                     rfidSection.style.display = 'none';
                     borrowerNameGroup.style.display = 'none';
-                    studentIdGroup.style.display = 'none';
                     bookUniqueIdGroup.style.display = 'none';
+                    teacherIdGroup.style.display = 'none';
                 }
-            });
+            }
+
+            // Initial call on page load
+            updateBorrowerFields();
+
+            borrowerType.addEventListener('change', updateBorrowerFields);
 
             studentOption.addEventListener('change', function() {
+                // Only allow studentIdGroup to show if borrowerType is student
+                if (borrowerType.value !== 'student') {
+                    studentIdGroup.style.display = 'none';
+                    return;
+                }
                 if (studentOption.value === 'rfid') {
                     rfidSection.style.display = 'block';
                     borrowerNameGroup.style.display = 'none';

@@ -112,7 +112,7 @@ class AuthManager {
     }
 
     redirectToLogin() {
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
     }
 
     initializeLogout() {
@@ -133,7 +133,7 @@ class AuthManager {
         this.currentUser = null;
 
         // Redirect to login
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
     }
 
     getCurrentUser() {

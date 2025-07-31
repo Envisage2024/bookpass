@@ -33,7 +33,7 @@
       window.firebaseAuth = firebase.auth();
       window.firebaseAuth.onAuthStateChanged(function(user) {
         if (!user) {
-          window.location.href = "login.html";
+          window.location.href = "index.html";
         }
       });
     </script>
@@ -120,10 +120,10 @@
           logoutBtn.addEventListener('click', function() {
             if (window.firebaseAuth) {
               window.firebaseAuth.signOut().then(function() {
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
               });
             } else {
-              window.location.href = 'login.html';
+              window.location.href = 'index.html';
             }
           });
         }

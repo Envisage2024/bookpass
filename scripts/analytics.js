@@ -17,7 +17,7 @@ window.firestore = firebase.firestore();
 window.firebaseAuth = firebase.auth();
 window.firebaseAuth.onAuthStateChanged(function(user) {
   if (!user) {
-    window.location.href = "login.html";
+    window.location.href = "index.html";
   }
 });
 
@@ -28,10 +28,10 @@ function setupLogoutButton() {
     logoutBtn.addEventListener('click', function() {
       if (window.firebaseAuth) {
         window.firebaseAuth.signOut().then(function() {
-          window.location.href = 'login.html';
+          window.location.href = 'index.html';
         });
       } else {
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
       }
     });
   }
@@ -62,23 +62,45 @@ class AnalyticsManager {
         const timeRange = document.getElementById('timeRange');
         if (timeRange) {
             timeRange.addEventListener('change', (e) => {
+                timeRange.disabled = true;
                 this.currentTimeRange = parseInt(e.target.value);
                 this.loadAnalytics();
                 this.updateCharts();
+                setTimeout(() => { timeRange.disabled = false; }, 500);
             });
         }
 
         // Export button
         const exportBtn = document.getElementById('exportBtn');
         if (exportBtn) {
-            exportBtn.addEventListener('click', () => this.openExportModal());
+            exportBtn.addEventListener('click', () => {
+                exportBtn.disabled = true;
+                this.openExportModal();
+                setTimeout(() => { exportBtn.disabled = false; }, 1000);
+            });
         }
 
         // Export modal handlers
         const confirmExportBtn = document.getElementById('confirmExportBtn');
         if (confirmExportBtn) {
-            confirmExportBtn.addEventListener('click', () => this.processExport());
+            confirmExportBtn.addEventListener('click', () => {
+                confirmExportBtn.disabled = true;
+                this.processExport().finally(() => {
+                    setTimeout(() => { confirmExportBtn.disabled = false; }, 1000);
+                });
+            });
         }
+
+        // Disable all buttons on click to prevent double entry
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.tagName === 'BUTTON') {
+                const btn = e.target;
+                if (!btn.disabled) {
+                    btn.disabled = true;
+                    setTimeout(() => { btn.disabled = false; }, 2000);
+                }
+            }
+        }, true);
     }
 
     async loadAnalytics() {
@@ -188,11 +210,16 @@ class AnalyticsManager {
         this.renderBarChart('categoriesChart', catLabels, catData, 'Checkouts');
 
         // 3. Borrower Types (pie chart)
-        const typeCounts = { student: 0, 'class-captain': 0 };
+        const typeCounts = { student: 0, 'class-captain': 0, teacher: 0 };
         checkouts.forEach(c => {
             typeCounts[c.borrowerType] = (typeCounts[c.borrowerType] || 0) + 1;
         });
-        this.renderPieChart('borrowerTypesChart', ['Student', 'Class Captain'], [typeCounts.student, typeCounts['class-captain']], ['#36a2eb', '#ffcd56']);
+        this.renderPieChart(
+            'borrowerTypesChart',
+            ['Student', 'Class Captain', 'Teacher'],
+            [typeCounts.student, typeCounts['class-captain'], typeCounts.teacher],
+            ['#36a2eb', '#ffcd56', '#4caf50']
+        );
 
         // 4. Return Status (doughnut chart)
         let returned = 0, overdue = 0;
@@ -486,25 +513,4 @@ document.addEventListener('DOMContentLoaded', () => {
             if (tryInitAnalyticsManager()) clearInterval(interval);
         }, 100);
     }
-
-    const body = document.querySelector('body');
-    body.style.opacity = 0;
-    body.style.transition = 'opacity 0.5s ease-in-out';
-    setTimeout(() => {
-        body.style.opacity = 1;
-    }, 100);
-
-    const links = document.querySelectorAll('a');
-    links.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const href = link.getAttribute('href');
-            if (href) {
-                body.style.opacity = 0;
-                setTimeout(() => {
-                    window.location.href = href;
-                }, 500);
-            }
-        });
-    });
 });
